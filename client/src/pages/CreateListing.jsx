@@ -136,12 +136,14 @@ export default function CreateListing() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${currentUser.token}`, // Send token
         },
         body: JSON.stringify({
           ...formData,
           userRef: currentUser._id,
         }),
       });
+      
       const data = await res.json();
       setLoading(false);
       if (data.success === false) {
