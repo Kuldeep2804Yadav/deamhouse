@@ -107,47 +107,40 @@ export default function SignIn() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form data on submit:', formData); // Log form data before sending the request
-
+    dispatch(signInStart());
+  
     try {
-      dispatch(signInStart()); // Start loading
-      console.log('Dispatching signInStart...'); // Log dispatch action
-      // const res = await fetch('/api/auth/signin', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify(formData),
-      // });
-      const res = await fetch('http://localhost:5000/api/auth/signin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const res = await fetch("http://localhost:3000/api/auth/signin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include", // Important: Allows receiving the cookie
         body: JSON.stringify(formData),
       });
+  
       const data = await res.json();
-
-      // Debugging the response:
-      console.log('API response data:', data); // Check if data contains a token or error message
-
-      // Check for the existence of a token in the response
+      console.log("API Response:", data);
+  
+      if (!data.success) {
+        dispatch(signInFailure(data.message || "Something went wrong"));
+        return;
+      }
+  
       if (data.token) {
-        console.log('Sign-in successful! Token:', data.token); // Log token on successful sign-in
-        dispatch(signInSuccess(data)); // On success, dispatch success with token data
-        navigate('/'); // Redirect to home page
+        console.log(data)
+        localStorage.setItem("token", data.token); // ✅ Store token in localStorage
+        localStorage.setItem('user',JSON.stringify(data?.user) )
+        dispatch(signInSuccess(data)); // ✅ Save user data in Redux
+        navigate("/");
       } else {
-        console.log('Sign-in failed. Message:', data.message); // Log error message on failure
-        dispatch(signInFailure(data.message || 'Something went wrong'));
+        dispatch(signInFailure("Token missing in response"));
       }
     } catch (error) {
-      console.log('Error in fetch:', error); // Log network or fetch error
-      dispatch(signInFailure(error.message || 'Network error'));
+      dispatch(signInFailure(error.message || "Network error"));
     }
   };
+  
 
-  console.log('Current loading state:', loading); // Log current loading state from Redux
-  console.log('Current error state:', error); // Log current error state from Redux
+  
 
   return (
     <div className='p-3 max-w-lg mx-auto'>
