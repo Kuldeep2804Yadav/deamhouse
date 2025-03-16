@@ -4,17 +4,17 @@ import dotenv from "dotenv";
 import userRouter from "./routes/user.route.js";
 import authRouter from "./routes/auth.route.js";
 import listingRouter from "./routes/listing.route.js";
-import cookieParser from "cookie-parser";
+import nodemailer from "nodemailer"; // ✅ Import Nodemailer
 import path from "path";
 import { fileURLToPath } from "url";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import User from "./models/user.model.js";
 
 dotenv.config();
 
 const app = express();
 
-// ✅ CORS Configuration
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -40,7 +40,42 @@ app.use("/api/user", userRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/listing", listingRouter);
 
+// ✅ 📩 Send Email API
+app.post("/api/send-email", async (req, res) => {
+  const { to, subject, message } = req.body;
 
+  if (!to || !subject || !message) {
+    return res.status(400).json({ success: false, message: "Missing fields" });
+  }
+
+  try {
+    // Configure Nodemailer Transporter
+    const transporter = nodemailer.createTransport({
+      service: "gmail", // You can change to another email provider
+      auth: {
+        user: "", // Your email
+        pass: "", // Your app password
+      },
+    });
+
+    // Email Options
+    const mailOptions = {
+      from: "@gmail.com",
+      to,
+      subject,
+      text: message,
+    };
+
+    // Send Email
+    await transporter.sendMail(mailOptions);
+    res
+      .status(200)
+      .json({ success: true, message: "Email sent successfully!" });
+  } catch (error) {
+    console.error("Error sending email:", error);
+    res.status(500).json({ success: false, message: "Email sending failed" });
+  }
+});
 
 // ✅ Serve React Frontend
 app.use(express.static(path.join(__dirname, "/client/dist")));

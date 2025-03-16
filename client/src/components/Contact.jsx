@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 export default function Contact({ listing }) {
   const [landlord, setLandlord] = useState(null);
   const [message, setMessage] = useState("");
+  const [isSending, setIsSending] = useState(false); // Loading state
+
   const onChange = (e) => {
     setMessage(e.target.value);
   };
@@ -11,14 +13,15 @@ export default function Contact({ listing }) {
     const fetchLandlord = async () => {
       try {
         const token = localStorage.getItem("token");
-        const user = localStorage.getItem("user"); // Retrieve token from storage
-        const paresedUser = JSON.parse(user);
-        const id = paresedUser?._id;
+        const user = localStorage.getItem("user");
+        const parsedUser = JSON.parse(user);
+        const id = parsedUser?._id;
+
         const res = await fetch(`http://localhost:3000/api/user/${id}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`, // Send token in Authorization header
+            Authorization: `Bearer ${token}`,
           },
         });
 
@@ -35,7 +38,43 @@ export default function Contact({ listing }) {
 
     fetchLandlord();
   }, [listing.userRef]);
-  console.log(landlord?.email)
+
+  // ✅ Function to Send Email via Backend API
+  const sendEmail = async () => {
+    if (!message.trim()) {
+      alert("Please enter a message before sending.");
+      return;
+    }
+
+    setIsSending(true);
+    
+    try {
+      const res = await fetch("http://localhost:3000/api/send-email", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          to: landlord.email,
+          subject: `Regarding ${listing.name}`,
+          message,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        alert("Email sent successfully!");
+        setMessage(""); // Clear message after sending
+      } else {
+        alert("Failed to send email.");
+      }
+    } catch (error) {
+      console.error("Error sending email:", error);
+      alert("Something went wrong. Please try again.");
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   return (
     <>
@@ -56,14 +95,13 @@ export default function Contact({ listing }) {
             className="w-full border p-3 rounded-lg"
           ></textarea>
 
-          <a
-            href={`mailto:${landlord.email}?subject=${encodeURIComponent(
-              `Regarding ${listing.name}`
-            )}&body=${encodeURIComponent(message)}`}
-            className="bg-slate-700 text-white text-center p-3 uppercase rounded-lg hover:opacity-95"
+          <button
+            onClick={sendEmail}
+            disabled={isSending}
+            className="bg-slate-700 text-white text-center p-3 uppercase rounded-lg hover:opacity-95 disabled:opacity-50"
           >
-            Send Message
-          </a>
+            {isSending ? "Sending..." : "Send Message"}
+          </button>
         </div>
       )}
     </>
