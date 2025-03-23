@@ -63,9 +63,54 @@ export const getListing = async (req, res, next) => {
 
 export const getListings = async (req, res, next) => {
   try {
-    const listings = await Listing.find(); // Fetch all listings without filters
+    const { searchTerm, type, regularPrice, bedrooms, bathrooms, furnished, parking } = req.query;
+
+    let query = {};
+
+    // Apply search filter
+    if (searchTerm) {
+      query.$or = [
+        { name: { $regex: searchTerm, $options: "i" } },
+        { description: { $regex: searchTerm, $options: "i" } },
+        { address: { $regex: searchTerm, $options: "i" } }
+      ];
+    }
+
+    // Apply type filter
+    if (type && type !== "all") {
+      query.type = type;
+    }
+
+    // Apply max price filter
+    if (regularPrice) {
+      query.regularPrice = { $lte: Number(regularPrice) };
+    }
+
+    // Apply bedroom filter
+    if (bedrooms) {
+      query.bedrooms = { $gte: Number(bedrooms) };
+    }
+
+    // Apply bathroom filter
+    if (bathrooms) {
+      query.bathrooms = { $gte: Number(bathrooms) };
+    }
+
+    // Apply furnished filter
+    if (furnished === "true") {
+      query.furnished = true;
+    }
+
+    // Apply parking filter
+    if (parking === "true") {
+      query.parking = true;
+    }
+
+    const listings = await Listing.find(query);
+    
     return res.status(200).json(listings);
   } catch (error) {
     next(error);
   }
 };
+
